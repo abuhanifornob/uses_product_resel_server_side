@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const { query } = require('express');
 const jwt = require('jsonwebtoken');
 
@@ -40,6 +40,17 @@ async function run() {
         const bookingCollection = client.db('usesProductsSeller').collection("booking");
         const usersCollection = client.db('usesProductsSeller').collection("users");
 
+        const verifyAdmin = async(req, res, next) => {
+            const decodedEmail = req.decoded.email;
+            const query = { email: decodedEmail };
+            const user = await usersCollection.findOne(query);
+
+            if (user?.role !== 'admin') {
+                return res.status(403).send({ message: 'forbidden access' })
+            }
+            next();
+        }
+
         app.get("/productsCategory", async(req, res) => {
             const query = {}
             const result = await usesProductsCategoryColletions.find(query).toArray();
@@ -52,6 +63,23 @@ async function run() {
             res.send(result);
 
 
+        });
+        app.post("/products",async(req,res)=>{
+            const product=req.body;
+            const result= await productsCollection.insertOne(product);
+            res.send(result);
+        })
+        app.get("/products/seller/:email",async(req,res)=>{
+            const email=req.params.email;
+            const query={email:email}
+            const result=await productsCollection.find(query).toArray();
+            res.send(result);
+        });
+        app.delete('/products/seller/:email',async (req, res) => {
+            const email = req.params.email;
+            const filter = {email};
+            const result = await productsCollection.deleteOne(filter);
+            res.send(result);
         });
 
         app.post("/booking", async(req, res) => {
@@ -86,8 +114,84 @@ async function run() {
             res.send(result);
 
         });
+        app.get("/users/:role",async(req,res)=>{
+            const role=req.params.role;
+            const query={role:role}
+            const result=await usersCollection.find(query).toArray();
+            res.send(result);
+        })
+        app.get("/users", async(req, res) => {
+            const query = {}
+            const result = await usersCollection.find(query).toArray();
+            res.send(result);
+        });
+         app.get("/users/role/:email",async(req,res)=>{
+            const email=req.params.email;
+            const filter={email:email}
+            const user=await usersCollection.findOne(filter);
+           
+            res.send({role:user?.role});
+
+         });
+       
+        // app.get('/addEmail', async (req, res) => {
+        //     const filter = {}
+        //     const options = { upsert: true }
+        //     const updatedDoc = {
+        //         $set: {
+        //             email:'nuri8@fate.com'
+        //         }
+        //     }
+        //     const result = await productsCollection.updateMany(filter, updatedDoc, options);
+        //     res.send(result);
+        // })
+
+      app.put("/users/verified/:email",verifyJWT,verifyAdmin, async(req,res)=>{
+        const email=req.params.email;
+        const filter={email}
+        const options = { upsert: true };
+        const updateDoc={
+            $set:{
+                verified:true
+            }
+        }
+        const productsDocUpdate=await productsCollection.updateMany(filter,updateDoc,options);
+        const usersUpdate=await usersCollection.updateOne(filter,updateDoc,options);
+        res.send(usersUpdate);
+      });
 
 
+        app.patch("/users/admin/:id", verifyJWT, verifyAdmin, async(req, res) => {
+            const id = req.params.id;
+            const filter = { _id: ObjectId(id) }
+            const userUpdateDoc = {
+                $set: {
+                    role: "admin"
+                }
+            }
+            const result = await usersCollection.updateOne(filter, userUpdateDoc);
+            res.send(result);
+         
+        });
+        // Verified Sellers..............
+        app.patch("/users/sellers/:name", verifyJWT, verifyAdmin, async(req, res) => {
+            const id = req.params.id;
+            const filter = { _id: ObjectId(id) }
+            const userUpdateDoc = {
+                $set: {
+                    role: "admin"
+                }
+            }
+            const result = await usersCollection.updateOne(filter, userUpdateDoc);
+            res.send(result);
+          
+        });
+        app.delete('/users/:email', verifyJWT, verifyAdmin, async (req, res) => {
+            const email = req.params.email;
+            const filter = {email};
+            const result = await usersCollection.deleteOne(filter);
+            res.send(result);
+        })
 
     } finally {}
 
