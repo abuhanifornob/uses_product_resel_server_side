@@ -162,7 +162,7 @@ async function run() {
             res.send(result);
          
         });
-        // Verified Sellers..............
+        
         app.patch("/users/sellers/:name", verifyJWT, verifyAdmin, async(req, res) => {
             const id = req.params.id;
             const filter = { _id: ObjectId(id) }
