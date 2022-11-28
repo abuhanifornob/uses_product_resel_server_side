@@ -134,17 +134,6 @@ async function run() {
 
          });
        
-        // app.get('/addEmail', async (req, res) => {
-        //     const filter = {}
-        //     const options = { upsert: true }
-        //     const updatedDoc = {
-        //         $set: {
-        //             email:'nuri8@fate.com'
-        //         }
-        //     }
-        //     const result = await productsCollection.updateMany(filter, updatedDoc, options);
-        //     res.send(result);
-        // })
 
       app.put("/users/verified/:email",verifyJWT,verifyAdmin, async(req,res)=>{
         const email=req.params.email;
